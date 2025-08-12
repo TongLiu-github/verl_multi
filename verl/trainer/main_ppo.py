@@ -55,10 +55,30 @@ def run_ppo(config) -> None:
         # Set environment variables in the runtime environment to control tokenizer parallelism,
         # NCCL debug level, VLLM logging level, and allow runtime LoRA updating
         # `num_cpus` specifies the number of CPU cores Ray can use, obtained from the configuration
+        # ray.init(
+        #     runtime_env=PPO_RAY_RUNTIME_ENV,
+        #     num_cpus=config.ray_init.num_cpus,
+        # )
+        # print("num of cpus: ", config.ray_init.num_cpus)
+        # print("Worker sees HIP_VISIBLE_DEVICES:", os.environ.get("HIP_VISIBLE_DEVICES"))
+        # print("Worker sees CUDA_VISIBLE_DEVICES:", os.environ.get("CUDA_VISIBLE_DEVICES"))
+        # Here I change to my own code.
         ray.init(
-            runtime_env=PPO_RAY_RUNTIME_ENV,
-            num_cpus=config.ray_init.num_cpus,
+            num_cpus=32,  # or however many CPUs you want to allocate
+            runtime_env={
+                'env_vars': {
+                    'TOKENIZERS_PARALLELISM': 'true',
+                    'NCCL_DEBUG': 'WARN',
+                    'VLLM_LOGGING_LEVEL': 'WARN',
+                    "VLLM_ALLOW_RUNTIME_LORA_UPDATING": "true",
+                },
+            },
         )
+        # os.environ["TOKENIZERS_PARALLELISM"] = "true"
+        # os.environ["NCCL_DEBUG"] = "WARN"
+        # os.environ["VLLM_LOGGING_LEVEL"] = "WARN"
+        # os.environ["VLLM_ALLOW_RUNTIME_LORA_UPDATING"] = "true"
+        # ray.init(address=None)
 
     # Create a remote instance of the TaskRunner class, and
     # Execute the `run` method of the TaskRunner instance remotely and wait for it to complete

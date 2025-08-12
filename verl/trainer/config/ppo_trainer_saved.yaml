@@ -516,15 +516,6 @@ trainer:
   # Number of generations to log during validation
   log_val_generations: 0
 
-  # Number of generations to log during rollout (training)
-  log_rollout_generations: 0
-
-  # Whether to save all rollout generations to files at each step
-  save_rollout_generations: False
-
-  # Directory for saving rollout generations to files
-  rollout_save_dir: saved_rollout/rollout
-
   # Directory for logging rollout data; no dump if null
   rollout_data_dir: null
 

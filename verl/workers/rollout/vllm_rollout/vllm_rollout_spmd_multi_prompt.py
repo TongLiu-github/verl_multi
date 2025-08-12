@@ -488,7 +488,40 @@ class vLLMRollout(BaseRollout):
                     rollout_log_probs, -1, max_length=self.config.response_length
                 ).to(idx.device)
                 rollout_log_probs = rollout_log_probs.to(torch.float32)
+                # change here 12.08
+                # Handle tensor model parallelism for rollout_log_probs
+                if self.config.get("tensor_model_parallel_size", 1) > 1:
+                    import vllm.parallel_state as vllm_ps
+                    tp_group = vllm_ps.get_tensor_model_parallel_group()
+                    tp_size = vllm_ps.get_tensor_model_parallel_world_size()
 
+                    # Gather rollout_log_probs from all tensor parallel ranks
+                    log_probs_list = [torch.empty_like(rollout_log_probs) for _ in range(tp_size)]
+                    torch.distributed.all_gather(log_probs_list, rollout_log_probs, group=tp_group)
+
+                    # Concatenate along batch dimension
+                    rollout_log_probs = torch.cat(log_probs_list, dim=0)
+
+            # Handle tensor model parallelism: gather tensors from all ranks before concatenation
+            if self.config.get("tensor_model_parallel_size", 1) > 1:
+                import vllm.parallel_state as vllm_ps
+                tp_group = vllm_ps.get_tensor_model_parallel_group()
+                tp_size = vllm_ps.get_tensor_model_parallel_world_size()
+
+                # Gather idx and response from all tensor parallel ranks
+                idx_list = [torch.empty_like(idx) for _ in range(tp_size)]
+                response_list = [torch.empty_like(response) for _ in range(tp_size)]
+
+                torch.distributed.all_gather(idx_list, idx, group=tp_group)
+                torch.distributed.all_gather(response_list, response, group=tp_group)
+
+                # Concatenate along batch dimension
+                idx = torch.cat(idx_list, dim=0)
+                response = torch.cat(response_list, dim=0)
+
+                # Update batch_size for subsequent operations
+                batch_size = idx.size(0)
+            # change here 12.08 end
             seq = torch.cat([idx, response], dim=-1)
 
         response_length = response.size(1)
@@ -496,6 +529,25 @@ class vLLMRollout(BaseRollout):
         delta_position_id = delta_position_id.unsqueeze(0).expand(batch_size, -1)
         if position_ids.dim() == 3:  # qwen2vl mrope
             delta_position_id = delta_position_id.view(batch_size, 1, -1).expand(batch_size, 3, -1)
+
+        # change here 12.08
+        # Handle tensor model parallelism for position_ids and attention_mask
+        if self.config.get("tensor_model_parallel_size", 1) > 1:
+            import vllm.parallel_state as vllm_ps
+            tp_group = vllm_ps.get_tensor_model_parallel_group()
+            tp_size = vllm_ps.get_tensor_model_parallel_world_size()
+
+            # Gather position_ids and attention_mask from all tensor parallel ranks
+            position_ids_list = [torch.empty_like(position_ids) for _ in range(tp_size)]
+            attention_mask_list = [torch.empty_like(attention_mask) for _ in range(tp_size)]
+
+            torch.distributed.all_gather(position_ids_list, position_ids, group=tp_group)
+            torch.distributed.all_gather(attention_mask_list, attention_mask, group=tp_group)
+
+            # Concatenate along batch dimension
+            position_ids = torch.cat(position_ids_list, dim=0)
+            attention_mask = torch.cat(attention_mask_list, dim=0)
+        # change here 12.08 end
 
         # TODO(sgm): fix position_ids on right_pad
         # prompt: left pad + response: right pad

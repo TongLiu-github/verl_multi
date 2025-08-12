@@ -687,61 +687,6 @@ class RayPPOTrainer:
         # Log to each configured logger
         self.validation_generations_logger.log(self.config.trainer.logger, samples, self.global_steps)
 
-# change: add save rollout generations 
-    def _maybe_log_rollout_generations(self, inputs, outputs, scores):
-        """Log a table of rollout samples to the configured logger (wandb or swanlab)"""
-
-        generations_to_log = self.config.trainer.log_rollout_generations
-
-        if generations_to_log == 0:
-            return
-
-        import numpy as np
-
-        # Create tuples of (input, output, score) and sort by input text
-        samples = list(zip(inputs, outputs, scores))
-        samples.sort(key=lambda x: x[0])  # Sort by input text
-
-        # Use fixed random seed for deterministic shuffling
-        rng = np.random.RandomState(42)
-        rng.shuffle(samples)
-
-        # Take first N samples after shuffling
-        samples = samples[:generations_to_log]
-
-        # Log to each configured logger
-        self.validation_generations_logger.log(self.config.trainer.logger, samples, self.global_steps)
-
-    def _save_rollout_generations_to_file(self, inputs, outputs, scores):
-        """Save all rollout generations to JSONL files at each step"""
-        
-        save_rollout_generations = self.config.trainer.get("save_rollout_generations", False)
-        
-        if not save_rollout_generations:
-            return
-            
-        # Create directory for saving rollout generations
-        rollout_save_dir = self.config.trainer.get("rollout_save_dir", "saved_rollout/rollout")
-        os.makedirs(rollout_save_dir, exist_ok=True)
-        
-        # Create filename for current step
-        filename = os.path.join(rollout_save_dir, f"step_{self.global_steps}.jsonl")
-        
-        # Save all generations to JSONL file
-        with open(filename, "w", encoding="utf-8") as f:
-            for i in range(len(inputs)):
-                # Create entry similar to verl_fei format
-                entry = {
-                    "question": inputs[i],
-                    "generation": outputs[i],
-                    "score": scores[i],
-                    "step": self.global_steps
-                }
-                f.write(json.dumps(entry, ensure_ascii=False) + "\n")
-        
-        print(f"✅ Saved {len(inputs)} rollout generations to {filename}")
-# end change: add save rollout generations 
-
     def _validate(self):
         data_source_lst = []
         reward_extra_infos_dict: dict[str, list] = defaultdict(list)
@@ -1382,21 +1327,7 @@ class RayPPOTrainer:
                                 reward_extra_infos_dict=reward_extra_infos_dict,
                                 dump_path=rollout_data_dir,
                             )
-# change: add save rollout generations                     
-                    # Log rollout generations to logger if enabled
-                    self._maybe_log_rollout_generations(
-                        inputs=self.tokenizer.batch_decode(batch.batch["prompts"], skip_special_tokens=True),
-                        outputs=self.tokenizer.batch_decode(batch.batch["responses"], skip_special_tokens=True),
-                        scores=batch.batch["token_level_scores"].sum(-1).cpu().tolist()
-                    )
-                    
-                    # Save all rollout generations to files if enabled
-                    self._save_rollout_generations_to_file(
-                        inputs=self.tokenizer.batch_decode(batch.batch["prompts"], skip_special_tokens=True),
-                        outputs=self.tokenizer.batch_decode(batch.batch["responses"], skip_special_tokens=True),
-                        scores=batch.batch["token_level_scores"].sum(-1).cpu().tolist()
-                    )
-# end change: add save rollout generations 
+
                     # validate
                     if (
                         self.val_reward_fn is not None

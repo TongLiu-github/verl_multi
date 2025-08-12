@@ -1,0 +1,13 @@
+{"time":"2025-08-12T11:10:32.387327689+02:00","level":"INFO","msg":"stream: starting","core version":"0.21.0"}
+{"time":"2025-08-12T11:10:32.786587758+02:00","level":"INFO","msg":"stream: created new stream","id":"k35iwamb"}
+{"time":"2025-08-12T11:10:32.786692597+02:00","level":"INFO","msg":"stream: started","id":"k35iwamb"}
+{"time":"2025-08-12T11:10:32.786733138+02:00","level":"INFO","msg":"writer: Do: started","stream_id":"k35iwamb"}
+{"time":"2025-08-12T11:10:32.78675018+02:00","level":"INFO","msg":"sender: started","stream_id":"k35iwamb"}
+{"time":"2025-08-12T11:10:32.786773563+02:00","level":"INFO","msg":"handler: started","stream_id":"k35iwamb"}
+{"time":"2025-08-12T11:12:10.75611748+02:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2025-08-12T11:12:11.019335824+02:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2025-08-12T11:12:11.02787309+02:00","level":"INFO","msg":"stream: closing","id":"k35iwamb"}
+{"time":"2025-08-12T11:12:11.027929182+02:00","level":"INFO","msg":"handler: closed","stream_id":"k35iwamb"}
+{"time":"2025-08-12T11:12:11.027951169+02:00","level":"INFO","msg":"writer: Close: closed","stream_id":"k35iwamb"}
+{"time":"2025-08-12T11:12:11.027974401+02:00","level":"INFO","msg":"sender: closed","stream_id":"k35iwamb"}
+{"time":"2025-08-12T11:12:11.028235373+02:00","level":"INFO","msg":"stream: closed","id":"k35iwamb"}
